@@ -1,13 +1,14 @@
 import RoadSlice from "./components/road-slice/RoadSlice";
-import type { RoadSliceData } from "../../types";
+import type { LightSettingsType, RoadSliceData } from "../../types";
 import { CELL_SIZE } from "../../constants";
 
 type RoadGridProps = {
   slices: RoadSliceData[];
   gridSize: number;
+  lights: LightSettingsType;
 };
 
-const RoadGrid = ({ slices, gridSize }: RoadGridProps) => {
+const RoadGrid = ({ slices, gridSize, lights }: RoadGridProps) => {
   return (
     <div
       className="relative bg-green-500"
@@ -24,7 +25,7 @@ const RoadGrid = ({ slices, gridSize }: RoadGridProps) => {
             height: CELL_SIZE,
           }}
         >
-          <RoadSlice lines={slice.lines} arrow={slice.arrow} />
+          <RoadSlice lines={slice.lines} arrow={slice.arrow} lights={lights} />
         </div>
       ))}
     </div>

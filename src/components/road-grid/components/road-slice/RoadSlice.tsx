@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import type {
   ArrowType,
   CompassDirectionType,
+  LightSettingsType,
   RoadSliceLinesType,
   SingleLineType,
 } from "../../../../types";
@@ -9,9 +10,11 @@ import { cn } from "../../../../utils/cn";
 
 import ArrowLeft from "../../../../assets/arrow-left.svg";
 import ArrowForwardRight from "../../../../assets/arrow-forward-right.svg";
+import TrafficLight from "../../../traffic-light/TrafficLight";
 
 type RoadSliceProps = {
   lines: RoadSliceLinesType;
+  lights: LightSettingsType;
   arrow?: ArrowType;
 };
 
@@ -50,11 +53,13 @@ const generateLine = (
   const rotation = linesRotationMap[direction];
 
   return (
-    <div className={cn("absolute size-16 transform", rotation)}>{line}</div>
+    <div className={cn("absolute size-16 transform z-30", rotation)}>
+      {line}
+    </div>
   );
 };
 
-const RoadSlice = ({ lines, arrow }: RoadSliceProps) => {
+const RoadSlice = ({ lines, lights, arrow }: RoadSliceProps) => {
   return (
     <div className="bg-gray-950 size-16 flex">
       {(Object.entries(lines) as [CompassDirectionType, SingleLineType][]).map(
@@ -62,14 +67,43 @@ const RoadSlice = ({ lines, arrow }: RoadSliceProps) => {
       )}
 
       {arrow && (
-        <img
-          src={arrow.type === "forward-right" ? ArrowForwardRight : ArrowLeft}
-          alt="Arrow"
+        <div
           className={cn(
-            "size-10 m-auto transform",
+            "size-16 transform relative z-40",
             arrowRotationMap[arrow.orientation]
           )}
-        />
+        >
+          <div
+            className={cn(
+              "absolute top-1",
+              arrow.type === "forward-right" ? "-right-14" : "-left-3"
+            )}
+          >
+            {arrow.type === "forward-right" ? (
+              <div className="flex items-end gap-1">
+                <TrafficLight
+                  phase={lights[arrow.orientation].basic}
+                  direction="basic"
+                />
+                <TrafficLight
+                  phase={lights[arrow.orientation].right}
+                  direction="right"
+                />
+              </div>
+            ) : (
+              <TrafficLight
+                phase={lights[arrow.orientation].left}
+                direction="left"
+              />
+            )}
+          </div>
+
+          <img
+            src={arrow.type === "forward-right" ? ArrowForwardRight : ArrowLeft}
+            alt="Arrow"
+            className="size-10 m-auto"
+          />
+        </div>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import { CELL_SIZE } from "../../constants";
+import { CELL_SIZE, STEP_TIME } from "../../constants";
 import type { CarType } from "../../types";
 import Car from "./components/car-view/CarView";
 
@@ -16,12 +16,13 @@ const CarsGrid = ({ cars, gridSize }: CarsGridProps) => {
       {cars.map((car) => (
         <div
           key={`${car.id}`}
-          className="absolute"
+          className="absolute transition-all ease-linear"
           style={{
             left: car.coords.x * CELL_SIZE,
             top: car.coords.y * CELL_SIZE,
             width: CELL_SIZE,
             height: CELL_SIZE,
+            transitionDuration: `${STEP_TIME}ms`,
           }}
         >
           <Car car={car} />
