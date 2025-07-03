@@ -46,7 +46,12 @@ export type LightSettingsType = Record<
   Record<LightDirectionType, PhaseType>
 >;
 
-export type CarsWaitingType = Record<
+export type CarsWaitingOnRoadType = Record<
   CompassDirectionType,
-  Record<LineType, Record<"queue" | "road", number>>
+  Record<LineType, number>
+>;
+
+export type CarsWaitingQueueType = Record<
+  CompassDirectionType,
+  Record<LineType, CarType[]>
 >;

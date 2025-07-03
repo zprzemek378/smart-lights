@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import RoadGrid from "./components/road-grid/RoadGrid";
 import { generateSlices } from "./utils/generateSlicesUtils";
 import type {
-  CarsWaitingType,
+  CarsWaitingOnRoadType,
+  CarsWaitingQueueType,
   CarType,
   CompassDirectionType,
   Coords,
@@ -47,6 +48,51 @@ const App = () => {
     lightsRef.current = lights;
   }, [lights]);
 
+  const [carsWaitingOnRoad, setCarsWaitingOnRoad] =
+    useState<CarsWaitingOnRoadType>({
+      north: {
+        "forward-right": 0,
+        left: 0,
+      },
+      east: {
+        "forward-right": 0,
+        left: 0,
+      },
+      south: {
+        "forward-right": 0,
+        left: 0,
+      },
+      west: {
+        "forward-right": 0,
+        left: 0,
+      },
+    });
+
+  const [carsWaitingQueue, setCarsWaitingQueue] =
+    useState<CarsWaitingQueueType>({
+      north: {
+        "forward-right": [],
+        left: [],
+      },
+      east: {
+        "forward-right": [],
+        left: [],
+      },
+      south: {
+        "forward-right": [],
+        left: [],
+      },
+      west: {
+        "forward-right": [],
+        left: [],
+      },
+    });
+
+  const carsWaitingQueueRef = useRef(carsWaitingQueue);
+  useEffect(() => {
+    carsWaitingQueueRef.current = carsWaitingQueue;
+  }, [carsWaitingQueue]);
+
   const createCar = (id: string, from: string, to: string) => {
     if (
       !["north", "east", "south", "west"].includes(from) ||
@@ -66,13 +112,6 @@ const App = () => {
     const coords: Coords = INITIAL_POSITIONS[validFrom][validTo]!;
 
     setCars((prev) => {
-      if (
-        prev.some((c) => c.coords.x === coords.x && c.coords.y === coords.y)
-      ) {
-        console.log("This place is already occupied");
-        return prev;
-      }
-
       const direction: CompassDirectionType = OPPOSITE_DIRECTION[validFrom];
       const turn: TurnType =
         validTo === PREVIOUS_DIRECTION[validFrom]
@@ -91,132 +130,85 @@ const App = () => {
         innerRotation: INITIAL_CAR_ROTATION[validFrom],
       };
 
+      if (
+        prev.some((c) => c.coords.x === coords.x && c.coords.y === coords.y)
+      ) {
+        const lineType: LineType = turn === "left" ? "left" : "forward-right";
+
+        setCarsWaitingQueue((prevQueue) => ({
+          ...prevQueue,
+          [validFrom]: {
+            ...prevQueue[validFrom],
+            [lineType]: [...prevQueue[validFrom][lineType], newCar],
+          },
+        }));
+
+        return prev;
+      }
+
       return [...prev, newCar];
     });
   };
 
-  const [carsWaiting, setCarsWaiting] = useState<CarsWaitingType>({
-    north: {
-      "forward-right": {
-        queue: 0,
-        road: 0,
-      },
-      left: {
-        queue: 0,
-        road: 0,
-      },
-    },
-    east: {
-      "forward-right": {
-        queue: 0,
-        road: 0,
-      },
-      left: {
-        queue: 0,
-        road: 0,
-      },
-    },
-    south: {
-      "forward-right": {
-        queue: 0,
-        road: 0,
-      },
-      left: {
-        queue: 0,
-        road: 0,
-      },
-    },
-    west: {
-      "forward-right": {
-        queue: 0,
-        road: 0,
-      },
-      left: {
-        queue: 0,
-        road: 0,
-      },
-    },
-  });
-
   const makeStep = () => {
     setCars((prev) => {
-      const newWaiting: CarsWaitingType = {
-        north: {
-          "forward-right": { queue: 0, road: 0 },
-          left: { queue: 0, road: 0 },
-        },
-        east: {
-          "forward-right": { queue: 0, road: 0 },
-          left: { queue: 0, road: 0 },
-        },
-        south: {
-          "forward-right": { queue: 0, road: 0 },
-          left: { queue: 0, road: 0 },
-        },
-        west: {
-          "forward-right": { queue: 0, road: 0 },
-          left: { queue: 0, road: 0 },
-        },
+      let newCars = [...prev];
+      const newWaiting: CarsWaitingOnRoadType = {
+        north: { "forward-right": 0, left: 0 },
+        east: { "forward-right": 0, left: 0 },
+        south: { "forward-right": 0, left: 0 },
+        west: { "forward-right": 0, left: 0 },
       };
 
-      prev.forEach((car) => {
+      newCars.forEach((car) => {
         if (car.currentStep < 4) {
           const from = car.from;
-          const lineType: LineType =
+          const lineType: "left" | "forward-right" =
             car.turn === "left" ? "left" : "forward-right";
-
-          newWaiting[from][lineType].road += 1;
+          newWaiting[from][lineType] += 1;
         }
       });
 
-      setCarsWaiting((prevWaiting) => {
-        const merged: CarsWaitingType = {
-          north: {
-            "forward-right": {
-              queue: prevWaiting.north["forward-right"].queue,
-              road: newWaiting.north["forward-right"].road,
-            },
-            left: {
-              queue: prevWaiting.north.left.queue,
-              road: newWaiting.north.left.road,
-            },
-          },
-          east: {
-            "forward-right": {
-              queue: prevWaiting.east["forward-right"].queue,
-              road: newWaiting.east["forward-right"].road,
-            },
-            left: {
-              queue: prevWaiting.east.left.queue,
-              road: newWaiting.east.left.road,
-            },
-          },
-          south: {
-            "forward-right": {
-              queue: prevWaiting.south["forward-right"].queue,
-              road: newWaiting.south["forward-right"].road,
-            },
-            left: {
-              queue: prevWaiting.south.left.queue,
-              road: newWaiting.south.left.road,
-            },
-          },
-          west: {
-            "forward-right": {
-              queue: prevWaiting.west["forward-right"].queue,
-              road: newWaiting.west["forward-right"].road,
-            },
-            left: {
-              queue: prevWaiting.west.left.queue,
-              road: newWaiting.west.left.road,
-            },
-          },
-        };
+      setCarsWaitingOnRoad(newWaiting);
 
-        return merged;
-      });
+      const newQueue = { ...carsWaitingQueueRef.current };
 
-      return prev.flatMap((car) => {
+      const carsToAdd: CarType[] = [];
+
+      (["north", "east", "south", "west"] as CompassDirectionType[]).forEach(
+        (from) => {
+          (["left", "forward-right"] as LineType[]).forEach((lineType) => {
+            const queue = newQueue[from][lineType];
+            if (queue.length === 0) return;
+
+            const car = queue[0];
+            const initialCoords = INITIAL_POSITIONS[car.from][car.to];
+
+            if (!initialCoords) {
+              console.log("dziwne, nie ma initialCoords");
+              return;
+            }
+
+            const isOccupied = newCars.some(
+              (c) =>
+                c.coords.x === initialCoords.x && c.coords.y === initialCoords.y
+            );
+
+            if (!isOccupied) {
+              console.log("wypuszczamy samochod ", car);
+              newQueue[from][lineType] = queue.slice(1);
+              carsToAdd.push(car);
+            }
+          });
+        }
+      );
+
+      // Aktualizacja kolejki
+      setCarsWaitingQueue(newQueue);
+
+      newCars = [...newCars, ...carsToAdd];
+
+      return newCars.flatMap((car) => {
         const step =
           car.turn === "forward"
             ? FORWARD_STEPS[car.currentStep]
@@ -255,7 +247,7 @@ const App = () => {
         };
 
         if (
-          prev.some(
+          newCars.some(
             (c) => c.coords.x === newCoords.x && c.coords.y === newCoords.y
           )
         ) {
@@ -322,7 +314,8 @@ const App = () => {
             slices={generateSlices()}
             gridSize={12}
             lights={lights}
-            carsWaiting={carsWaiting}
+            carsWaitingOnRoad={carsWaitingOnRoad}
+            carsWaitingQueue={carsWaitingQueue}
           />
         </div>
         <div className="absolute z-10">

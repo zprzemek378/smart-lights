@@ -1,6 +1,7 @@
 import RoadSlice from "./components/road-slice/RoadSlice";
 import type {
-  CarsWaitingType,
+  CarsWaitingOnRoadType,
+  CarsWaitingQueueType,
   LightSettingsType,
   RoadSliceData,
 } from "../../shared/types";
@@ -10,10 +11,17 @@ type RoadGridProps = {
   slices: RoadSliceData[];
   gridSize: number;
   lights: LightSettingsType;
-  carsWaiting: CarsWaitingType;
+  carsWaitingOnRoad: CarsWaitingOnRoadType;
+  carsWaitingQueue: CarsWaitingQueueType;
 };
 
-const RoadGrid = ({ slices, gridSize, lights, carsWaiting }: RoadGridProps) => {
+const RoadGrid = ({
+  slices,
+  gridSize,
+  lights,
+  carsWaitingOnRoad,
+  carsWaitingQueue,
+}: RoadGridProps) => {
   return (
     <div
       className="relative bg-green-500"
@@ -34,7 +42,8 @@ const RoadGrid = ({ slices, gridSize, lights, carsWaiting }: RoadGridProps) => {
             lines={slice.lines}
             arrow={slice.arrow}
             lights={lights}
-            carsWaiting={carsWaiting}
+            carsWaitingOnRoad={carsWaitingOnRoad}
+            carsWaitingQueue={carsWaitingQueue}
           />
         </div>
       ))}

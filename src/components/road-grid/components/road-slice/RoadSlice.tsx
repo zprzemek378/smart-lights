@@ -1,7 +1,8 @@
 import type { JSX } from "react";
 import type {
   ArrowType,
-  CarsWaitingType,
+  CarsWaitingOnRoadType,
+  CarsWaitingQueueType,
   CompassDirectionType,
   LightSettingsType,
   RoadSliceLinesType,
@@ -17,7 +18,8 @@ import { OPPOSITE_DIRECTION } from "../../../../shared/constants";
 type RoadSliceProps = {
   lines: RoadSliceLinesType;
   lights: LightSettingsType;
-  carsWaiting: CarsWaitingType;
+  carsWaitingOnRoad: CarsWaitingOnRoadType;
+  carsWaitingQueue: CarsWaitingQueueType;
   arrow?: ArrowType;
 };
 
@@ -69,27 +71,25 @@ const generateLine = (
   );
 };
 
-const getTrafficCounts = (
-  arrow: ArrowType | undefined,
-  carsWaiting: CarsWaitingType
-) => {
-  if (!arrow) return { roadCount: 0, queueCount: 0, summaryCount: 0 };
+const RoadSlice = ({
+  lines,
+  lights,
+  arrow,
+  carsWaitingOnRoad,
+  carsWaitingQueue,
+}: RoadSliceProps) => {
+  const from = arrow?.orientation
+    ? OPPOSITE_DIRECTION[arrow.orientation]
+    : undefined;
+  const type = arrow?.type;
 
-  const opposite = OPPOSITE_DIRECTION[arrow.orientation];
-  const { road, queue } = carsWaiting[opposite][arrow.type];
+  const roadCount: number =
+    (from && type && carsWaitingOnRoad?.[from]?.[type]) ?? 0;
 
-  return {
-    roadCount: road,
-    queueCount: queue,
-    summaryCount: road + queue,
-  };
-};
+  const queueCount: number =
+    (from && type && carsWaitingQueue?.[from]?.[type].length) ?? 0;
 
-const RoadSlice = ({ lines, lights, arrow, carsWaiting }: RoadSliceProps) => {
-  const { roadCount, queueCount, summaryCount } = getTrafficCounts(
-    arrow,
-    carsWaiting
-  );
+  const summaryCount = roadCount + queueCount;
 
   return (
     <div className="bg-gray-950 size-16 flex">
