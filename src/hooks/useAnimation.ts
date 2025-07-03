@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { STEP_TIME } from "../constants";
+import { STEP_TIME } from "../shared/constants";
 
 export const useAnimation = (makeStep: () => void) => {
   const intervalRef = useRef<number | null>(null);

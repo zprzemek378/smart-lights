@@ -1,5 +1,5 @@
-import { CELL_SIZE, STEP_TIME } from "../../constants";
-import type { CarType } from "../../types";
+import { CELL_SIZE, STEP_TIME } from "../../shared/constants";
+import type { CarType } from "../../shared/types";
 import Car from "./components/car-view/CarView";
 
 type CarsGridProps = {

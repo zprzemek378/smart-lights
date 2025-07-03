@@ -3,7 +3,7 @@ import type {
   CompassDirectionType,
   LightDirectionType,
   LightSettingsType,
-} from "../../types";
+} from "../../shared/types";
 import { Button } from "../../ui/Button";
 
 type LightsControlPanelProps = {

@@ -1,5 +1,5 @@
+import { generateLeftTurnSteps as generateTurnSteps } from "../utils/vectorUtils";
 import type { CompassDirectionType, Coords, LightDirectionType } from "./types";
-import { generateLeftTurnSteps as generateTurnSteps } from "./utils/vectorUtils";
 
 export const CELL_SIZE = 64;
 export const STEP_TIME = 800;

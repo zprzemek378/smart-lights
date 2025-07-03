@@ -1,4 +1,4 @@
-import type { RoadSliceData } from "../types";
+import type { RoadSliceData } from "../shared/types";
 
 const addNorthSouthRoad = (
   slices: RoadSliceData[],

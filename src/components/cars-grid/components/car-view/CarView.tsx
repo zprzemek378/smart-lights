@@ -1,4 +1,4 @@
-import type { CarType } from "../../../../types";
+import type { CarType } from "../../../../shared/types";
 
 import CarIcon from "../../../../assets/car.svg";
 import { cn } from "../../../../utils/cn";

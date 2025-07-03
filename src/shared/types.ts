@@ -10,8 +10,10 @@ export type RoadSliceLinesType = {
   west: SingleLineType;
 };
 
+export type LineType = "forward-right" | "left";
+
 export type ArrowType = {
-  type: "forward-right" | "left";
+  type: LineType;
   orientation: CompassDirectionType;
 };
 
@@ -42,4 +44,9 @@ export type CarType = {
 export type LightSettingsType = Record<
   CompassDirectionType,
   Record<LightDirectionType, PhaseType>
+>;
+
+export type CarsWaitingType = Record<
+  CompassDirectionType,
+  Record<LineType, Record<"queue" | "road", number>>
 >;

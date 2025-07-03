@@ -1,20 +1,23 @@
 import type { JSX } from "react";
 import type {
   ArrowType,
+  CarsWaitingType,
   CompassDirectionType,
   LightSettingsType,
   RoadSliceLinesType,
   SingleLineType,
-} from "../../../../types";
+} from "../../../../shared/types";
 import { cn } from "../../../../utils/cn";
 
 import ArrowLeft from "../../../../assets/arrow-left.svg";
 import ArrowForwardRight from "../../../../assets/arrow-forward-right.svg";
 import TrafficLight from "../../../traffic-light/TrafficLight";
+import { OPPOSITE_DIRECTION } from "../../../../shared/constants";
 
 type RoadSliceProps = {
   lines: RoadSliceLinesType;
   lights: LightSettingsType;
+  carsWaiting: CarsWaitingType;
   arrow?: ArrowType;
 };
 
@@ -45,6 +48,13 @@ const arrowRotationMap: Record<CompassDirectionType, string> = {
   west: "rotate-270",
 };
 
+const reverseArrowRotationMap: Record<CompassDirectionType, string> = {
+  north: "",
+  east: "rotate-270",
+  south: "rotate-180",
+  west: "rotate-90",
+};
+
 const generateLine = (
   type: SingleLineType,
   direction: CompassDirectionType
@@ -59,7 +69,28 @@ const generateLine = (
   );
 };
 
-const RoadSlice = ({ lines, lights, arrow }: RoadSliceProps) => {
+const getTrafficCounts = (
+  arrow: ArrowType | undefined,
+  carsWaiting: CarsWaitingType
+) => {
+  if (!arrow) return { roadCount: 0, queueCount: 0, summaryCount: 0 };
+
+  const opposite = OPPOSITE_DIRECTION[arrow.orientation];
+  const { road, queue } = carsWaiting[opposite][arrow.type];
+
+  return {
+    roadCount: road,
+    queueCount: queue,
+    summaryCount: road + queue,
+  };
+};
+
+const RoadSlice = ({ lines, lights, arrow, carsWaiting }: RoadSliceProps) => {
+  const { roadCount, queueCount, summaryCount } = getTrafficCounts(
+    arrow,
+    carsWaiting
+  );
+
   return (
     <div className="bg-gray-950 size-16 flex">
       {(Object.entries(lines) as [CompassDirectionType, SingleLineType][]).map(
@@ -73,6 +104,29 @@ const RoadSlice = ({ lines, lights, arrow }: RoadSliceProps) => {
             arrowRotationMap[arrow.orientation]
           )}
         >
+          <div
+            className={cn(
+              "flex w-20 border-2 opacity-90",
+              "absolute top-57",
+              reverseArrowRotationMap[arrow.orientation],
+              arrow.type === "forward-right" ? "left-2" : "right-2"
+            )}
+          >
+            <div className="flex-1 text-center bg-blue-200">{roadCount}</div>
+            <div className="flex-1 text-center bg-blue-100">{queueCount}</div>
+            <div
+              className={cn(
+                "flex-1 text-center font-bold",
+                summaryCount < 4
+                  ? "bg-green-300"
+                  : summaryCount < 8
+                  ? "bg-yellow-500"
+                  : "bg-red-500"
+              )}
+            >
+              {summaryCount}
+            </div>
+          </div>
           <div
             className={cn(
               "absolute top-1",

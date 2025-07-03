@@ -1,4 +1,4 @@
-import type { LightDirectionType, PhaseType } from "../../types";
+import type { LightDirectionType, PhaseType } from "../../shared/types";
 
 type TrafficLightProps = {
   phase: PhaseType;

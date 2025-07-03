@@ -1,4 +1,4 @@
-import type { CompassDirectionType, Coords } from "../types";
+import type { CompassDirectionType, Coords } from "../shared/types";
 
 export const rotateVector = (coords: Coords, from: CompassDirectionType) => {
   const { x, y } = coords;

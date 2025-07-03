@@ -1,14 +1,19 @@
 import RoadSlice from "./components/road-slice/RoadSlice";
-import type { LightSettingsType, RoadSliceData } from "../../types";
-import { CELL_SIZE } from "../../constants";
+import type {
+  CarsWaitingType,
+  LightSettingsType,
+  RoadSliceData,
+} from "../../shared/types";
+import { CELL_SIZE } from "../../shared/constants";
 
 type RoadGridProps = {
   slices: RoadSliceData[];
   gridSize: number;
   lights: LightSettingsType;
+  carsWaiting: CarsWaitingType;
 };
 
-const RoadGrid = ({ slices, gridSize, lights }: RoadGridProps) => {
+const RoadGrid = ({ slices, gridSize, lights, carsWaiting }: RoadGridProps) => {
   return (
     <div
       className="relative bg-green-500"
@@ -25,7 +30,12 @@ const RoadGrid = ({ slices, gridSize, lights }: RoadGridProps) => {
             height: CELL_SIZE,
           }}
         >
-          <RoadSlice lines={slice.lines} arrow={slice.arrow} lights={lights} />
+          <RoadSlice
+            lines={slice.lines}
+            arrow={slice.arrow}
+            lights={lights}
+            carsWaiting={carsWaiting}
+          />
         </div>
       ))}
     </div>

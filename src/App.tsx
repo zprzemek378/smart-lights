@@ -2,16 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import RoadGrid from "./components/road-grid/RoadGrid";
 import { generateSlices } from "./utils/generateSlicesUtils";
 import type {
+  CarsWaitingType,
   CarType,
   CompassDirectionType,
   Coords,
   LightSettingsType,
+  LineType,
   TurnType,
-} from "./types";
-
+} from "./shared/types";
 import CarsGrid from "./components/cars-grid/CarsGrid";
 import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
 import {
   CELL_SIZE,
   FORWARD_STEPS,
@@ -22,7 +22,7 @@ import {
   POSITIONS_TO_LIGHTS,
   PREVIOUS_DIRECTION,
   RIGHT_STEPS,
-} from "./constants";
+} from "./shared/constants";
 import {
   coordsToKey,
   rotateVector,
@@ -32,9 +32,6 @@ import { useAnimation } from "./hooks/useAnimation";
 import { LightsControlPanel } from "./components/lights-control-panel/LightsControlPanel";
 
 const App = () => {
-  const [inputFrom, setInputFrom] = useState<string>("");
-  const [inputTo, setInputTo] = useState<string>("");
-
   const [cars, setCars] = useState<CarType[]>([]);
 
   const [lights, setLights] = useState<LightSettingsType>({
@@ -98,9 +95,128 @@ const App = () => {
     });
   };
 
+  const [carsWaiting, setCarsWaiting] = useState<CarsWaitingType>({
+    north: {
+      "forward-right": {
+        queue: 0,
+        road: 0,
+      },
+      left: {
+        queue: 0,
+        road: 0,
+      },
+    },
+    east: {
+      "forward-right": {
+        queue: 0,
+        road: 0,
+      },
+      left: {
+        queue: 0,
+        road: 0,
+      },
+    },
+    south: {
+      "forward-right": {
+        queue: 0,
+        road: 0,
+      },
+      left: {
+        queue: 0,
+        road: 0,
+      },
+    },
+    west: {
+      "forward-right": {
+        queue: 0,
+        road: 0,
+      },
+      left: {
+        queue: 0,
+        road: 0,
+      },
+    },
+  });
+
   const makeStep = () => {
-    setCars((prev) =>
-      prev.flatMap((car) => {
+    setCars((prev) => {
+      const newWaiting: CarsWaitingType = {
+        north: {
+          "forward-right": { queue: 0, road: 0 },
+          left: { queue: 0, road: 0 },
+        },
+        east: {
+          "forward-right": { queue: 0, road: 0 },
+          left: { queue: 0, road: 0 },
+        },
+        south: {
+          "forward-right": { queue: 0, road: 0 },
+          left: { queue: 0, road: 0 },
+        },
+        west: {
+          "forward-right": { queue: 0, road: 0 },
+          left: { queue: 0, road: 0 },
+        },
+      };
+
+      prev.forEach((car) => {
+        if (car.currentStep < 4) {
+          const from = car.from;
+          const lineType: LineType =
+            car.turn === "left" ? "left" : "forward-right";
+
+          newWaiting[from][lineType].road += 1;
+        }
+      });
+
+      setCarsWaiting((prevWaiting) => {
+        const merged: CarsWaitingType = {
+          north: {
+            "forward-right": {
+              queue: prevWaiting.north["forward-right"].queue,
+              road: newWaiting.north["forward-right"].road,
+            },
+            left: {
+              queue: prevWaiting.north.left.queue,
+              road: newWaiting.north.left.road,
+            },
+          },
+          east: {
+            "forward-right": {
+              queue: prevWaiting.east["forward-right"].queue,
+              road: newWaiting.east["forward-right"].road,
+            },
+            left: {
+              queue: prevWaiting.east.left.queue,
+              road: newWaiting.east.left.road,
+            },
+          },
+          south: {
+            "forward-right": {
+              queue: prevWaiting.south["forward-right"].queue,
+              road: newWaiting.south["forward-right"].road,
+            },
+            left: {
+              queue: prevWaiting.south.left.queue,
+              road: newWaiting.south.left.road,
+            },
+          },
+          west: {
+            "forward-right": {
+              queue: prevWaiting.west["forward-right"].queue,
+              road: newWaiting.west["forward-right"].road,
+            },
+            left: {
+              queue: prevWaiting.west.left.queue,
+              road: newWaiting.west.left.road,
+            },
+          },
+        };
+
+        return merged;
+      });
+
+      return prev.flatMap((car) => {
         const step =
           car.turn === "forward"
             ? FORWARD_STEPS[car.currentStep]
@@ -152,26 +268,12 @@ const App = () => {
           currentStep: car.currentStep + 1,
           coords: newCoords,
         };
-      })
-    );
+      });
+    });
   };
 
-  // const changeLights = (
-  //   direction: CompassDirectionType,
-  //   lightDirection: LightDirectionType,
-  //   phase: PhaseType
-  // ) => {
-  //   setLights((prev) => ({
-  //     ...prev,
-  //     [direction]: {
-  //       ...prev[direction],
-  //       [lightDirection]: phase,
-  //     },
-  //   }));
-  // };
-
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
+    // let timeoutId: ReturnType<typeof setTimeout>;
 
     const generateRandomCars = () => {
       const minDelay = 500;
@@ -187,7 +289,7 @@ const App = () => {
         "west",
       ];
 
-      timeoutId = setTimeout(() => {
+      setTimeout(() => {
         const fromIndex = Math.floor(Math.random() * directions.length);
         const from = directions[fromIndex];
         const remainingDirections = directions.filter(
@@ -209,14 +311,19 @@ const App = () => {
   return (
     <div className="flex flex-col gap-4 items-center">
       <div
-        className="relative"
+        className="relative m-10"
         style={{
           width: `${CELL_SIZE * 12}px`,
           height: `${CELL_SIZE * 12}px`,
         }}
       >
         <div className="absolute z-0">
-          <RoadGrid slices={generateSlices()} gridSize={12} lights={lights} />
+          <RoadGrid
+            slices={generateSlices()}
+            gridSize={12}
+            lights={lights}
+            carsWaiting={carsWaiting}
+          />
         </div>
         <div className="absolute z-10">
           <CarsGrid cars={cars} gridSize={12} />
@@ -226,25 +333,6 @@ const App = () => {
       <LightsControlPanel setLights={setLights} lights={lights} />
 
       <div className="flex flex-col gap-4 ">
-        <Input
-          placeholder="From"
-          value={inputFrom}
-          onChange={(e) => setInputFrom(e.currentTarget.value)}
-        />
-        <Input
-          placeholder="To"
-          value={inputTo}
-          onChange={(e) => setInputTo(e.currentTarget.value)}
-        />
-        <Button
-          variant="outline"
-          onClick={() => createCar(`v${Date.now()}`, inputFrom, inputTo)}
-        >
-          Add car
-        </Button>
-        <Button variant="outline" onClick={() => makeStep()}>
-          Make step
-        </Button>
         <Button variant="outline" onClick={() => startAnimation()}>
           Start animation
         </Button>
