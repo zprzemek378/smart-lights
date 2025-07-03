@@ -55,3 +55,18 @@ export type CarsWaitingQueueType = Record<
   CompassDirectionType,
   Record<LineType, CarType[]>
 >;
+
+type Command =
+  | {
+      type: "addVehicle";
+      vehicleId: string;
+      startRoad: string;
+      endRoad: string;
+    }
+  | {
+      type: "step";
+    };
+
+export type CommandFile = {
+  commands: Command[];
+};

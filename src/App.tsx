@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import RoadGrid from "./components/road-grid/RoadGrid";
 import { generateSlices } from "./utils/generateSlicesUtils";
-import type {
-  CarsWaitingOnRoadType,
-  CarsWaitingQueueType,
-  CarType,
-  CompassDirectionType,
-  Coords,
-  LightSettingsType,
-  LineType,
-  TurnType,
+import {
+  type CarsWaitingOnRoadType,
+  type CarsWaitingQueueType,
+  type CarType,
+  type CommandFile,
+  type CompassDirectionType,
+  type Coords,
+  type LightSettingsType,
+  type LineType,
+  type TurnType,
 } from "./shared/types";
 import CarsGrid from "./components/cars-grid/CarsGrid";
 import { Button } from "./ui/Button";
@@ -23,6 +24,7 @@ import {
   POSITIONS_TO_LIGHTS,
   PREVIOUS_DIRECTION,
   RIGHT_STEPS,
+  STEP_TIME,
 } from "./shared/constants";
 import {
   coordsToKey,
@@ -31,8 +33,12 @@ import {
 } from "./utils/vectorUtils";
 import { useAnimation } from "./hooks/useAnimation";
 import { LightsControlPanel } from "./components/lights-control-panel/LightsControlPanel";
+import JsonReader from "./components/json-reader/JsonReader";
 
 const App = () => {
+  const [commandFile, setCommandFile] = useState<CommandFile | null>(null);
+  const [commandIndex, setCommandIndex] = useState(0);
+
   const [cars, setCars] = useState<CarType[]>([]);
 
   const [lights, setLights] = useState<LightSettingsType>({
@@ -185,7 +191,6 @@ const App = () => {
             const initialCoords = INITIAL_POSITIONS[car.from][car.to];
 
             if (!initialCoords) {
-              console.log("dziwne, nie ma initialCoords");
               return;
             }
 
@@ -195,7 +200,6 @@ const App = () => {
             );
 
             if (!isOccupied) {
-              console.log("wypuszczamy samochod ", car);
               newQueue[from][lineType] = queue.slice(1);
               carsToAdd.push(car);
             }
@@ -264,39 +268,72 @@ const App = () => {
     });
   };
 
+  // useEffect(() => {
+  //   // let timeoutId: ReturnType<typeof setTimeout>;
+
+  //   const generateRandomCars = () => {
+  //     const minDelay = 500;
+  //     const maxDelay = 2000;
+
+  //     const randomDelay =
+  //       Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
+  //     const directions: CompassDirectionType[] = [
+  //       "north",
+  //       "east",
+  //       "south",
+  //       "west",
+  //     ];
+
+  //     setTimeout(() => {
+  //       const fromIndex = Math.floor(Math.random() * directions.length);
+  //       const from = directions[fromIndex];
+  //       const remainingDirections = directions.filter(
+  //         (_, i) => i !== fromIndex
+  //       );
+  //       const to =
+  //         remainingDirections[
+  //           Math.floor(Math.random() * remainingDirections.length)
+  //         ];
+  //       createCar(crypto.randomUUID(), from, to);
+  //       generateRandomCars();
+  //     }, randomDelay);
+  //   };
+  //   generateRandomCars();
+  // }, []);
+
   useEffect(() => {
-    // let timeoutId: ReturnType<typeof setTimeout>;
+    if (
+      !commandFile ||
+      !commandFile.commands ||
+      commandIndex >= commandFile.commands.length
+    )
+      return;
 
-    const generateRandomCars = () => {
-      const minDelay = 500;
-      const maxDelay = 2000;
+    const command = commandFile.commands[commandIndex];
 
-      const randomDelay =
-        Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-      const directions: CompassDirectionType[] = [
-        "north",
-        "east",
-        "south",
-        "west",
-      ];
+    if (command.type === "addVehicle") {
+      createCar(
+        command.vehicleId || crypto.randomUUID(),
+        command.startRoad,
+        command.endRoad
+      );
+      timeoutId = setTimeout(() => setCommandIndex((i) => i + 1), 0);
+    } else if (command.type === "step") {
+      makeStep();
+      timeoutId = setTimeout(() => setCommandIndex((i) => i + 1), STEP_TIME);
+    }
 
-      setTimeout(() => {
-        const fromIndex = Math.floor(Math.random() * directions.length);
-        const from = directions[fromIndex];
-        const remainingDirections = directions.filter(
-          (_, i) => i !== fromIndex
-        );
-        const to =
-          remainingDirections[
-            Math.floor(Math.random() * remainingDirections.length)
-          ];
-        createCar(crypto.randomUUID(), from, to);
-        generateRandomCars();
-      }, randomDelay);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
     };
-    generateRandomCars();
-  }, []);
+  }, [commandFile, commandIndex]);
+
+  useEffect(() => {
+    if (commandFile) setCommandIndex(0);
+  }, [commandFile]);
 
   const { startAnimation, stopAnimation } = useAnimation(makeStep);
 
@@ -326,6 +363,7 @@ const App = () => {
       <LightsControlPanel setLights={setLights} lights={lights} />
 
       <div className="flex flex-col gap-4 ">
+        <JsonReader setCommandFile={setCommandFile} />
         <Button variant="outline" onClick={() => startAnimation()}>
           Start animation
         </Button>
