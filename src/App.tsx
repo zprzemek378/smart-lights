@@ -360,7 +360,12 @@ const App = () => {
         </div>
       </div>
 
-      <LightsControlPanel setLights={setLights} lights={lights} />
+      <LightsControlPanel
+        setLights={setLights}
+        lights={lights}
+        carsWaitingOnRoad={carsWaitingOnRoad}
+        carsWaitingQueue={carsWaitingQueue}
+      />
 
       <div className="flex flex-col gap-4 ">
         <JsonReader setCommandFile={setCommandFile} />

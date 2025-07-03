@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type {
+  CarsWaitingOnRoadType,
+  CarsWaitingQueueType,
   CompassDirectionType,
   LightDirectionType,
   LightSettingsType,
+  LineType,
 } from "../../shared/types";
 import { Button } from "../../ui/Button";
 
 type LightsControlPanelProps = {
   lights: LightSettingsType;
   setLights: React.Dispatch<React.SetStateAction<LightSettingsType>>;
+  carsWaitingOnRoad: CarsWaitingOnRoadType;
+  carsWaitingQueue: CarsWaitingQueueType;
 };
 
 // 0 = off, 2 = on
@@ -39,79 +44,152 @@ const lightModes: Record<string, LightSettingsType> = {
   },
 };
 
-const modeKeys = Object.keys(lightModes) as Array<keyof typeof lightModes>;
+const MIN_MODE_DURATION_MS = 10000;
+const BOOST_TIMEOUT = 80000; //after 80s turn on the light even if is not most crowded
+const BOOST_VALUE = 1000;
 
 export const LightsControlPanel = ({
   lights,
   setLights,
+  carsWaitingOnRoad,
+  carsWaitingQueue,
 }: LightsControlPanelProps) => {
-  const [modeIndex, setModeIndex] = useState(0);
+  const carsWaitingOnRoadRef = useRef(carsWaitingOnRoad);
+  const carsWaitingQueueRef = useRef(carsWaitingQueue);
 
-  const applyLightModeWithTransitions = (
-    current: LightSettingsType,
-    target: LightSettingsType
-  ) => {
-    const updatedPhase: LightSettingsType = JSON.parse(JSON.stringify(current));
+  const lastModeActivationTimeRef = useRef<Record<string, number>>({
+    NSforward: Date.now(),
+    EWforward: Date.now(),
+    NSleft: Date.now(),
+    EWleft: Date.now(),
+  });
 
-    const transitions: Array<{
-      direction: CompassDirectionType;
-      light: LightDirectionType;
-      final: 0 | 2;
-    }> = [];
+  const currentModeRef = useRef<keyof typeof lightModes>("");
+  const lastModeSwitchTimeRef = useRef(Date.now());
 
-    (["north", "east", "south", "west"] as CompassDirectionType[]).forEach(
-      (dir) => {
-        (["basic", "left", "right"] as LightDirectionType[]).forEach(
-          (light) => {
-            const currentVal = current[dir][light];
-            const targetVal = target[dir][light];
-            if (currentVal === targetVal) return;
+  const applyLightModeWithTransitions = useCallback(
+    (current: LightSettingsType, target: LightSettingsType) => {
+      const updatedPhase: LightSettingsType = JSON.parse(
+        JSON.stringify(current)
+      );
 
-            if (currentVal === 0 && targetVal === 2) {
-              updatedPhase[dir][light] = 1; // off -> on
-              transitions.push({ direction: dir, light, final: 2 });
-            } else if (currentVal === 2 && targetVal === 0) {
-              updatedPhase[dir][light] = 3; // on -> off
-              transitions.push({ direction: dir, light, final: 0 });
-            } else {
-              updatedPhase[dir][light] = targetVal;
+      const transitions: Array<{
+        direction: CompassDirectionType;
+        light: LightDirectionType;
+        final: 0 | 2;
+      }> = [];
+
+      (["north", "east", "south", "west"] as CompassDirectionType[]).forEach(
+        (dir) => {
+          (["basic", "left", "right"] as LightDirectionType[]).forEach(
+            (light) => {
+              const currentVal = current[dir][light];
+              const targetVal = target[dir][light];
+              if (currentVal === targetVal) return;
+
+              if (currentVal === 0 && targetVal === 2) {
+                updatedPhase[dir][light] = 1; // off -> on
+                transitions.push({ direction: dir, light, final: 2 });
+              } else if (currentVal === 2 && targetVal === 0) {
+                updatedPhase[dir][light] = 3; // on -> off
+                transitions.push({ direction: dir, light, final: 0 });
+              } else {
+                updatedPhase[dir][light] = targetVal;
+              }
             }
-          }
-        );
-      }
-    );
+          );
+        }
+      );
 
-    setLights(updatedPhase);
+      setLights(updatedPhase);
 
-    if (transitions.length > 0) {
-      setTimeout(() => {
-        setLights((prev) => {
-          const next = JSON.parse(JSON.stringify(prev));
-          transitions.forEach(({ direction, light, final }) => {
-            next[direction][light] = final;
+      if (transitions.length > 0) {
+        setTimeout(() => {
+          setLights((prev) => {
+            const next = JSON.parse(JSON.stringify(prev));
+            transitions.forEach(({ direction, light, final }) => {
+              next[direction][light] = final;
+            });
+            return next;
           });
-          return next;
-        });
-      }, 2300);
-    }
-  };
+        }, 2300);
+      }
+    },
+    [setLights]
+  );
+
+  useEffect(() => {
+    carsWaitingOnRoadRef.current = carsWaitingOnRoad;
+  }, [carsWaitingOnRoad]);
+
+  useEffect(() => {
+    carsWaitingQueueRef.current = carsWaitingQueue;
+  }, [carsWaitingQueue]);
 
   const applyMode = useCallback(
     (modeName: keyof typeof lightModes) => {
       applyLightModeWithTransitions(lights, lightModes[modeName]);
     },
-    [lights]
+    [lights, applyLightModeWithTransitions]
   );
+
+  const getSummaryCount = (
+    direction: CompassDirectionType,
+    lineType: LineType
+  ): number => {
+    return (
+      carsWaitingOnRoadRef.current[direction][lineType] +
+      carsWaitingQueueRef.current[direction][lineType].length
+    );
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const nextIndex = (modeIndex + 1) % modeKeys.length;
-      applyMode(modeKeys[nextIndex]);
-      setModeIndex(nextIndex);
-    }, 10000); // co 10 sekund
+      const now = Date.now();
 
+      const need: Record<string, number> = {
+        NSforward:
+          getSummaryCount("north", "forward-right") +
+          getSummaryCount("south", "forward-right"),
+        EWforward:
+          getSummaryCount("east", "forward-right") +
+          getSummaryCount("west", "forward-right"),
+        NSleft:
+          getSummaryCount("north", "left") + getSummaryCount("south", "left"),
+        EWleft:
+          getSummaryCount("east", "left") + getSummaryCount("west", "left"),
+      };
+
+      // if a mode hasn't been activated for a long time we give it a boost
+      Object.entries(lastModeActivationTimeRef.current).forEach(
+        ([key, lastTime]) => {
+          if (now - lastTime > BOOST_TIMEOUT) {
+            need[key] += BOOST_VALUE;
+          }
+        }
+      );
+
+      if (now - lastModeSwitchTimeRef.current < MIN_MODE_DURATION_MS) {
+        return;
+      }
+
+      console.log(need);
+
+      const maxKey = Object.entries(need).reduce((maxKey, [key, value]) => {
+        return value > need[maxKey] ? key : maxKey;
+      }, Object.keys(need)[0]);
+
+      // if the same, don't change
+      if (maxKey !== currentModeRef.current) {
+        currentModeRef.current = maxKey;
+        lastModeSwitchTimeRef.current = now;
+        lastModeActivationTimeRef.current[maxKey] = now;
+
+        applyMode(maxKey);
+      }
+    }, 3000);
     return () => clearInterval(interval);
-  }, [modeIndex, applyMode]);
+  }, [applyMode]);
 
   return (
     <div className="flex gap-3">
