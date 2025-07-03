@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import type {
   CompassDirectionType,
   LightDirectionType,
@@ -25,23 +26,27 @@ const lightModes: Record<string, LightSettingsType> = {
     west: { basic: 2, left: 0, right: 0 },
   },
   NSleft: {
-    north: { basic: 0, left: 2, right: 0 },
+    north: { basic: 0, left: 2, right: 2 },
     east: { basic: 0, left: 0, right: 2 },
-    south: { basic: 0, left: 2, right: 0 },
+    south: { basic: 0, left: 2, right: 2 },
     west: { basic: 0, left: 0, right: 2 },
   },
   EWleft: {
     north: { basic: 0, left: 0, right: 2 },
-    east: { basic: 0, left: 2, right: 0 },
+    east: { basic: 0, left: 2, right: 2 },
     south: { basic: 0, left: 0, right: 2 },
-    west: { basic: 0, left: 2, right: 0 },
+    west: { basic: 0, left: 2, right: 2 },
   },
 };
+
+const modeKeys = Object.keys(lightModes) as Array<keyof typeof lightModes>;
 
 export const LightsControlPanel = ({
   lights,
   setLights,
 }: LightsControlPanelProps) => {
+  const [modeIndex, setModeIndex] = useState(0);
+
   const applyLightModeWithTransitions = (
     current: LightSettingsType,
     target: LightSettingsType
@@ -87,13 +92,26 @@ export const LightsControlPanel = ({
           });
           return next;
         });
-      }, 1000);
+      }, 2300);
     }
   };
 
-  const applyMode = (modeName: keyof typeof lightModes) => {
-    applyLightModeWithTransitions(lights, lightModes[modeName]);
-  };
+  const applyMode = useCallback(
+    (modeName: keyof typeof lightModes) => {
+      applyLightModeWithTransitions(lights, lightModes[modeName]);
+    },
+    [lights]
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex = (modeIndex + 1) % modeKeys.length;
+      applyMode(modeKeys[nextIndex]);
+      setModeIndex(nextIndex);
+    }, 10000); // co 10 sekund
+
+    return () => clearInterval(interval);
+  }, [modeIndex, applyMode]);
 
   return (
     <div className="flex gap-3">

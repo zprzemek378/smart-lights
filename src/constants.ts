@@ -1,8 +1,8 @@
-import type { CompassDirectionType, Coords } from "./types";
+import type { CompassDirectionType, Coords, LightDirectionType } from "./types";
 import { generateLeftTurnSteps as generateTurnSteps } from "./utils/vectorUtils";
 
 export const CELL_SIZE = 64;
-export const STEP_TIME = 1000;
+export const STEP_TIME = 800;
 
 export const OPPOSITE_DIRECTION: Record<
   CompassDirectionType,
@@ -71,7 +71,7 @@ export const FORWARD_STEPS = Array(11).fill({ x: 0, y: 1 });
 
 const LEFT_STEPS_1 = Array(2).fill({ x: 0, y: 1 });
 const LEFT_STEPS_2 = generateTurnSteps(0.94, 6, "left");
-const LEFT_STEPS_3 = Array(3).fill({ x: 1, y: 0 });
+const LEFT_STEPS_3 = Array(2).fill({ x: 1, y: 0 });
 
 export const LEFT_STEPS = [...LEFT_STEPS_1, ...LEFT_STEPS_2, ...LEFT_STEPS_3];
 
@@ -84,3 +84,20 @@ export const RIGHT_STEPS = [
   ...RIGHT_STEPS_2,
   ...RIGHT_STEPS_3,
 ];
+
+export const POSITIONS_TO_LIGHTS: Record<
+  string,
+  [CompassDirectionType, LightDirectionType]
+> = {
+  "4,3": ["south", "basic"],
+  "5,3": ["south", "left"],
+
+  "8,4": ["west", "basic"],
+  "8,5": ["west", "left"],
+
+  "7,8": ["north", "basic"],
+  "6,8": ["north", "left"],
+
+  "3,7": ["east", "basic"],
+  "3,6": ["east", "left"],
+};

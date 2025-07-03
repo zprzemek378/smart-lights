@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import RoadGrid from "./components/road-grid/RoadGrid";
 import { generateSlices } from "./utils/generateSlicesUtils";
 import type {
@@ -19,10 +19,15 @@ import {
   INITIAL_POSITIONS,
   LEFT_STEPS,
   OPPOSITE_DIRECTION,
+  POSITIONS_TO_LIGHTS,
   PREVIOUS_DIRECTION,
   RIGHT_STEPS,
 } from "./constants";
-import { rotateVector, vectorToDegrees } from "./utils/vectorUtils";
+import {
+  coordsToKey,
+  rotateVector,
+  vectorToDegrees,
+} from "./utils/vectorUtils";
 import { useAnimation } from "./hooks/useAnimation";
 import { LightsControlPanel } from "./components/lights-control-panel/LightsControlPanel";
 
@@ -31,6 +36,19 @@ const App = () => {
   const [inputTo, setInputTo] = useState<string>("");
 
   const [cars, setCars] = useState<CarType[]>([]);
+
+  const [lights, setLights] = useState<LightSettingsType>({
+    north: { basic: 0, left: 0, right: 0 },
+    east: { basic: 0, left: 0, right: 0 },
+    south: { basic: 0, left: 0, right: 0 },
+    west: { basic: 0, left: 0, right: 0 },
+  });
+
+  const lightsRef = useRef(lights);
+
+  useEffect(() => {
+    lightsRef.current = lights;
+  }, [lights]);
 
   const createCar = (id: string, from: string, to: string) => {
     if (
@@ -49,26 +67,35 @@ const App = () => {
     const validTo: CompassDirectionType = to as CompassDirectionType;
 
     const coords: Coords = INITIAL_POSITIONS[validFrom][validTo]!;
-    const direction: CompassDirectionType = OPPOSITE_DIRECTION[validFrom];
-    const turn: TurnType =
-      validTo === PREVIOUS_DIRECTION[validFrom]
-        ? "right"
-        : validTo === OPPOSITE_DIRECTION[validFrom]
-        ? "forward"
-        : "left";
-    const newCar: CarType = {
-      id,
-      from: validFrom,
-      to: validTo,
-      coords,
-      direction,
-      turn,
-      currentStep: 0,
-      innerRotation: INITIAL_CAR_ROTATION[validFrom],
-    };
 
-    console.log(newCar);
-    setCars((prev) => [...prev, newCar]);
+    setCars((prev) => {
+      if (
+        prev.some((c) => c.coords.x === coords.x && c.coords.y === coords.y)
+      ) {
+        console.log("This place is already occupied");
+        return prev;
+      }
+
+      const direction: CompassDirectionType = OPPOSITE_DIRECTION[validFrom];
+      const turn: TurnType =
+        validTo === PREVIOUS_DIRECTION[validFrom]
+          ? "right"
+          : validTo === OPPOSITE_DIRECTION[validFrom]
+          ? "forward"
+          : "left";
+      const newCar: CarType = {
+        id,
+        from: validFrom,
+        to: validTo,
+        coords,
+        direction,
+        turn,
+        currentStep: 0,
+        innerRotation: INITIAL_CAR_ROTATION[validFrom],
+      };
+
+      return [...prev, newCar];
+    });
   };
 
   const makeStep = () => {
@@ -87,27 +114,47 @@ const App = () => {
           return [];
         }
 
+        // if red light, dont move
+
+        const carLights = POSITIONS_TO_LIGHTS[coordsToKey(car.coords)];
+
+        const currentLightsState: LightSettingsType = lightsRef.current;
+
+        // basic and left light
+        if (carLights && currentLightsState[carLights[0]][carLights[1]] !== 2) {
+          // conditional arrow
+          if (
+            car.turn !== "right" ||
+            currentLightsState[carLights[0]].right !== 2
+          ) {
+            return car;
+          }
+        }
+
         const vector: Coords = rotateVector(step, car.from);
+
+        const newCoords: Coords = {
+          x: car.coords.x + vector.x,
+          y: car.coords.y + vector.y,
+        };
+
+        if (
+          prev.some(
+            (c) => c.coords.x === newCoords.x && c.coords.y === newCoords.y
+          )
+        ) {
+          return car;
+        }
 
         return {
           ...car,
           innerRotation: vectorToDegrees(vector),
           currentStep: car.currentStep + 1,
-          coords: {
-            x: car.coords.x + vector.x,
-            y: car.coords.y + vector.y,
-          },
+          coords: newCoords,
         };
       })
     );
   };
-
-  const [lights, setLights] = useState<LightSettingsType>({
-    north: { basic: 0, left: 0, right: 0 },
-    east: { basic: 0, left: 0, right: 0 },
-    south: { basic: 0, left: 0, right: 0 },
-    west: { basic: 0, left: 0, right: 0 },
-  });
 
   // const changeLights = (
   //   direction: CompassDirectionType,
@@ -122,6 +169,40 @@ const App = () => {
   //     },
   //   }));
   // };
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const generateRandomCars = () => {
+      const minDelay = 500;
+      const maxDelay = 2000;
+
+      const randomDelay =
+        Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
+      const directions: CompassDirectionType[] = [
+        "north",
+        "east",
+        "south",
+        "west",
+      ];
+
+      timeoutId = setTimeout(() => {
+        const fromIndex = Math.floor(Math.random() * directions.length);
+        const from = directions[fromIndex];
+        const remainingDirections = directions.filter(
+          (_, i) => i !== fromIndex
+        );
+        const to =
+          remainingDirections[
+            Math.floor(Math.random() * remainingDirections.length)
+          ];
+        createCar(crypto.randomUUID(), from, to);
+        generateRandomCars();
+      }, randomDelay);
+    };
+    generateRandomCars();
+  }, []);
 
   const { startAnimation, stopAnimation } = useAnimation(makeStep);
 

@@ -46,3 +46,9 @@ export const generateLeftTurnSteps = (
 
   return result;
 };
+
+export const coordsToKey = (coords: Coords): string => {
+  const roundedX = Math.round(coords.x);
+  const roundedY = Math.round(coords.y);
+  return `${roundedX},${roundedY}`;
+};
