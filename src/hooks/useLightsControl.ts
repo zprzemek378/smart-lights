@@ -6,10 +6,9 @@ import type {
   LightDirectionType,
   LightSettingsType,
   LineType,
-} from "../../shared/types";
-import { Button } from "../../ui/Button";
+} from "../shared/types";
 
-type LightsControlPanelProps = {
+type UseLightsControlProps = {
   lights: LightSettingsType;
   setLights: React.Dispatch<React.SetStateAction<LightSettingsType>>;
   carsWaitingOnRoad: CarsWaitingOnRoadType;
@@ -48,12 +47,12 @@ const MIN_MODE_DURATION_MS = 10000;
 const BOOST_TIMEOUT = 80000; //after 80s turn on the light even if is not most crowded
 const BOOST_VALUE = 1000;
 
-export const LightsControlPanel = ({
+export const useLightsControl = ({
   lights,
   setLights,
   carsWaitingOnRoad,
   carsWaitingQueue,
-}: LightsControlPanelProps) => {
+}: UseLightsControlProps) => {
   const carsWaitingOnRoadRef = useRef(carsWaitingOnRoad);
   const carsWaitingQueueRef = useRef(carsWaitingQueue);
 
@@ -65,7 +64,7 @@ export const LightsControlPanel = ({
   });
 
   const currentModeRef = useRef<keyof typeof lightModes>("");
-  const lastModeSwitchTimeRef = useRef(Date.now());
+  const lastModeSwitchTimeRef = useRef(Date.now() - MIN_MODE_DURATION_MS);
 
   const applyLightModeWithTransitions = useCallback(
     (current: LightSettingsType, target: LightSettingsType) => {
@@ -144,7 +143,7 @@ export const LightsControlPanel = ({
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const changeLights = () => {
       const now = Date.now();
 
       const need: Record<string, number> = {
@@ -187,17 +186,12 @@ export const LightsControlPanel = ({
 
         applyMode(maxKey);
       }
+    };
+
+    const interval = setInterval(() => {
+      changeLights();
     }, 3000);
+
     return () => clearInterval(interval);
   }, [applyMode]);
-
-  return (
-    <div className="flex gap-3">
-      {Object.keys(lightModes).map((m) => (
-        <Button variant="outline" key={m} onClick={() => applyMode(m)}>
-          {m}
-        </Button>
-      ))}
-    </div>
-  );
 };

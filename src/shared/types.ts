@@ -70,3 +70,11 @@ type Command =
 export type CommandFile = {
   commands: Command[];
 };
+
+type Result = {
+  leftVehicles: string[];
+};
+
+export type ResultFile = {
+  stepStatuses: Result[];
+};

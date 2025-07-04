@@ -17,13 +17,20 @@ const JsonReader = ({ setCommandFile }: JsonReaderProps) => {
         const parsed = JSON.parse(text);
         setCommandFile(parsed);
       } catch (err) {
-        console.error("Błąd parsowania JSON:", err);
+        console.error("Error parsing JSON:", err);
       }
     };
     reader.readAsText(file);
   };
 
-  return <Input type="file" accept=".json" onChange={handleFileUpload} />;
+  return (
+    <Input
+      type="file"
+      accept=".json"
+      onChange={handleFileUpload}
+      className="cursor-pointer"
+    />
+  );
 };
 
 export default JsonReader;
